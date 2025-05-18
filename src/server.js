@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+dotenv.config();
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -12,7 +13,7 @@ import Komentar from './models/Komentar.js';
 import Group from './models/Group.js';
 import GroupMember from './models/GroupMember.js';
 import GroupChat from './models/GroupChat.js';
-
+import authRoutes from './routes/authRoutes.js';
 
 // Import routes di sini nanti
 // import userRoutes from './routes/userRoutes.js';
@@ -44,6 +45,7 @@ app.get('/', (req, res) => {
 });
 
 // Gunakan routes di sini nanti
+app.use('/api/auth', authRoutes);
 // app.use('/api/users', userRoutes);
 // app.use('/api/posts', postRoutes);
 // app.use('/api/chats', chatRoutes);

@@ -16,7 +16,7 @@ import GroupChat from './models/GroupChat.js';
 import authRoutes from './routes/authRoutes.js';
 
 // Import routes di sini nanti
-// import userRoutes from './routes/userRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 // import postRoutes from './routes/postRoutes.js';
 // import chatRoutes from './routes/chatRoutes.js';
 
@@ -46,7 +46,7 @@ app.get('/', (req, res) => {
 
 // Gunakan routes di sini nanti
 app.use('/api/auth', authRoutes);
-// app.use('/api/users', userRoutes);
+app.use('/api/users', userRoutes);
 // app.use('/api/posts', postRoutes);
 // app.use('/api/chats', chatRoutes);
 

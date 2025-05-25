@@ -4,14 +4,14 @@ import { Op } from 'sequelize';
 
 export const sendMessage = async (req, res) => {
   try {
-    const { id_penerima, pesan, media } = req.body;
+    const { id_penerima, pesan, media_url } = req.body;
     const id_pengirim = req.user.user_id; 
 
     const chat = await Chat.create({
       id_pengirim,
       id_penerima,
       pesan,
-      media
+      media_url
     });
 
     res.status(201).json({ message: 'Pesan berhasil dikirim', chat });

@@ -1,6 +1,8 @@
 import Chat from '../models/Chat.js';
 import User from '../models/User.js';
 import { Op } from 'sequelize';
+import fs from 'fs';
+import path from 'path';
 
 export const sendMessage = async (req, res) => {
   try {
@@ -75,6 +77,22 @@ export const deleteMessage = async (req, res) => {
 
     if (!chat) {
       return res.status(404).json({ message: 'Pesan tidak ditemukan atau Anda tidak memiliki izin untuk menghapus pesan ini' });
+    }
+
+    // Hapus file media jika ada
+    if (chat.media_url) {
+      const filename = path.basename(chat.media_url);
+      const filePath = path.join(process.cwd(), 'uploads', 'chat_media', filename);
+      
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log('File media berhasil dihapus:', filePath);
+        }
+      } catch (err) {
+        console.error('Gagal menghapus file media:', err);
+        // Lanjutkan meskipun gagal menghapus file, agar pesan tetap terhapus dari DB
+      }
     }
 
     await chat.destroy();

@@ -25,7 +25,7 @@ const getAllUsers = async (req, res) => {
     const loggedInUserId = req.user.user_id;
     const users = await User.findAll({
       where: { user_id: { [Op.ne]: loggedInUserId } },
-      attributes: ['user_id', 'username', 'email', 'name', 'foto_profil']
+      attributes: ['user_id', 'username', 'email', 'name', 'foto_profil', 'is_online', 'last_seen']
     });
     res.status(200).json(users);
   } catch (error) {
@@ -33,4 +33,46 @@ const getAllUsers = async (req, res) => {
   }
 };
 
-export { getUserProfile, updateUserProfile, getAllUsers };
+// @desc    Update user online status
+// @route   PUT /api/users/status
+// @access  Private
+const updateOnlineStatus = async (req, res) => {
+  try {
+    const { is_online } = req.body;
+    const userId = req.user.user_id;
+    
+    await User.update(
+      { 
+        is_online: is_online,
+        last_seen: new Date()
+      },
+      { where: { user_id: userId } }
+    );
+    
+    res.status(200).json({ message: 'Status berhasil diupdate' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get user online status
+// @route   GET /api/users/status/:id
+// @access  Private
+const getUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByPk(id, {
+      attributes: ['user_id', 'username', 'is_online', 'last_seen']
+    });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User tidak ditemukan' });
+    }
+    
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export { getUserProfile, updateUserProfile, getAllUsers, updateOnlineStatus, getUserStatus };

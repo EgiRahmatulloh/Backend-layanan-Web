@@ -8,13 +8,23 @@ import jwt from 'jsonwebtoken';
 const registerUser = async (req, res) => {
   const { username, email, password, name } = req.body;
 
+  // Validasi input
+  if (!username || !email || !password || !name) {
+    return res.status(400).json({ message: 'Harap masukkan semua bidang yang diperlukan' });
+  }
+
   try {
     const userExists = await User.findOne({ where: { email } });
 
     if (userExists) {
-      res.status(400).json({ message: 'Pengguna sudah ada' });
-      return;
+      return res.status(400).json({ message: 'Pengguna dengan email ini sudah ada' });
     }
+
+    const usernameExists = await User.findOne({ where: { username } });
+    if (usernameExists) {
+      return res.status(400).json({ message: 'Pengguna dengan username ini sudah ada' });
+    }
+
 
     const user = await User.create({
       username,
@@ -25,10 +35,10 @@ const registerUser = async (req, res) => {
 
     if (user) {
       res.status(201).json({
-        id: user.id,
+        id: user.user_id,
         username: user.username,
         email: user.email,
-        token: generateToken(user.id),
+        token: generateToken(user.user_id),
       });
     } else {
       res.status(400).json({ message: 'Data pengguna tidak valid' });
@@ -49,10 +59,10 @@ const loginUser = async (req, res) => {
 
     if (user && (await bcrypt.compare(password, user.password))) {
       res.json({
-        id: user.id,
+        id: user.user_id,
         username: user.username,
         email: user.email,
-        token: generateToken(user.id),
+        token: generateToken(user.user_id),
       });
     } else {
       res.status(401).json({ message: 'Email atau password salah' });

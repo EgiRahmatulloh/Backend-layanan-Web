@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import { Op } from 'sequelize';
 
 // @desc    Get user profile
 // @route   GET /api/users/:id
@@ -16,4 +17,20 @@ const updateUserProfile = async (req, res) => {
   res.send('PUT user profile');
 };
 
-export { getUserProfile, updateUserProfile };
+// @desc    Get all users
+// @route   GET /api/users
+// @access  Private
+const getAllUsers = async (req, res) => {
+  try {
+    const loggedInUserId = req.user.user_id;
+    const users = await User.findAll({
+      where: { user_id: { [Op.ne]: loggedInUserId } },
+      attributes: ['user_id', 'username', 'email', 'name', 'foto_profil']
+    });
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export { getUserProfile, updateUserProfile, getAllUsers };

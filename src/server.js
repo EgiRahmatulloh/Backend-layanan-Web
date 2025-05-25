@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,15 +47,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Konfigurasi CORS
+const allowedOrigins = ['http://localhost:3000'];
 const corsOptions = {
-  origin: 'http://localhost:3000', // Sesuaikan dengan URL frontend
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 200
 };
-
-// Terapkan CORS dengan opsi yang sudah dikonfigurasi
 app.use(cors(corsOptions));
 app.use(helmet());
 app.use(morgan('dev'));
@@ -62,16 +68,58 @@ app.use(morgan('dev'));
 // Handle preflight requests
 app.options('*', cors(corsOptions));
 
+// Definisikan path untuk uploads dan chat_media
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+const chatMediaDir = path.join(uploadsDir, 'chat_media');
+
+// Buat direktori jika belum ada
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log(`Direktori ${uploadsDir} berhasil dibuat`);
+  }
+  if (!fs.existsSync(chatMediaDir)) {
+    fs.mkdirSync(chatMediaDir, { recursive: true });
+    console.log(`Direktori ${chatMediaDir} berhasil dibuat`);
+  }
+  console.log('Sistem siap menerima file di:', uploadsDir);
+} catch (error) {
+  console.error('Gagal membuat direktori:', error);
+  process.exit(1);
+}
+
+// Konfigurasi multer untuk upload file
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '..', 'uploads', 'chat_media'));
+    cb(null, chatMediaDir);
   },
   filename: (req, file, cb) => {
-    cb(null, file.fieldname + '-' + Date.now() + '.' + file.originalname.split('.').pop());
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'chat_media-' + uniqueSuffix + path.extname(file.originalname));
   },
 });
 
-const upload = multer({ storage: storage });
+// Batas ukuran file 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+const fileFilter = (req, file, cb) => {
+  // Izinkan gambar, video, dan dokumen
+  const allowedFileTypes = /jpeg|jpg|png|gif|mp4|mov|avi|pdf|doc|docx|xls|xlsx|ppt|pptx|txt/;
+  const extname = allowedFileTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedFileTypes.test(file.mimetype);
+
+  if (extname && mimetype) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Jenis file tidak didukung. Hanya file gambar, video, dan dokumen yang diizinkan.'));
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: fileFilter
+}).single('chat_media');
 
 // Routes
 app.get('/', (req, res) => {
@@ -84,21 +132,39 @@ app.use('/api/users', userRoutes);
 // app.use('/api/posts', postRoutes);
 app.use('/api/chats', chatRoutes);
 
-const uploadsDir = path.join(__dirname, '..', 'uploads');
-app.use('/uploads', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  next();
-}, express.static(uploadsDir));
-console.log('Serving static files from:', uploadsDir);
+// Setup static file serving
+app.use('/uploads', express.static(uploadsDir));
 
-app.post('/api/upload/chat_media', upload.single('chat_media'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('Tidak ada file yang diunggah.');
-  }
-  res.send({ filePath: `/uploads/chat_media/${req.file.filename}` });
+app.post('/api/upload/chat_media', (req, res) => {
+  upload(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      // A Multer error occurred when uploading
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'Ukuran file terlalu besar. Maksimal 10MB' });
+      }
+      return res.status(500).json({ error: 'Terjadi kesalahan saat mengunggah file' });
+    } else if (err) {
+      // An unknown error occurred
+      return res.status(400).json({ error: err.message });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Tidak ada file yang diunggah' });
+    }
+
+    try {
+      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/chat_media/${req.file.filename}`;
+      res.status(200).json({ 
+        success: true,
+        filePath: `/uploads/chat_media/${req.file.filename}`,
+        fileUrl: fileUrl,
+        fileName: req.file.filename
+      });
+    } catch (error) {
+      console.error('Error processing upload:', error);
+      res.status(500).json({ error: 'Terjadi kesalahan saat memproses file' });
+    }
+  });
 });
 
 // Error handler

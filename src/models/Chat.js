@@ -28,7 +28,7 @@ const Chat = sequelize.define('Chat', {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  media: {
+  media_url: {
     type: DataTypes.STRING,
     allowNull: true
   },

@@ -1,10 +1,11 @@
 import express from 'express';
-import { getUserProfile, updateUserProfile } from '../controllers/userController.js';
-// import { protect } from '../middleware/authMiddleware.js'; // Jika ada middleware autentikasi
+import { getUserProfile, updateUserProfile, getAllUsers } from '../controllers/userController.js';
+import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // router.route('/:id').get(protect, getUserProfile).put(protect, updateUserProfile);
-router.route('/:id').get(getUserProfile).put(updateUserProfile);
+router.route('/:id').get(verifyToken, getUserProfile).put(verifyToken, updateUserProfile);
+router.get('/', verifyToken, getAllUsers);
 
 export default router;

@@ -1,6 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 dotenv.config();
+import http from 'http';
+import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -18,7 +20,7 @@ import authRoutes from './routes/authRoutes.js';
 // Import routes di sini nanti
 import userRoutes from './routes/userRoutes.js';
 // import postRoutes from './routes/postRoutes.js';
-// import chatRoutes from './routes/chatRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 
 dotenv.config();
 
@@ -31,6 +33,7 @@ sequelize.sync({ force: false }).then(() => {
 
 
 const app = express();
+
 
 // Middleware
 app.use(express.json());
@@ -48,7 +51,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 // app.use('/api/posts', postRoutes);
-// app.use('/api/chats', chatRoutes);
+app.use('/api/chats', chatRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
@@ -62,6 +65,26 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*", // Sesuaikan dengan origin frontend Anda
+    methods: ["GET", "POST"]
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('Pengguna terhubung:', socket.id);
+
+  socket.on('sendMessage', (message) => {
+    io.emit('receiveMessage', message); // Kirim pesan ke semua klien yang terhubung
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Pengguna terputus:', socket.id);
+  });
+});
+
+httpServer.listen(PORT, () => {
   console.log(`Server berjalan di port ${PORT}`);
 });

@@ -26,7 +26,7 @@ import authRoutes from './routes/authRoutes.js';
 
 // Import routes di sini nanti
 import userRoutes from './routes/userRoutes.js';
-// import postRoutes from './routes/postRoutes.js';
+import postRoutes from './routes/postRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 
 dotenv.config();
@@ -129,7 +129,7 @@ app.get('/', (req, res) => {
 // Gunakan routes di sini nanti
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-// app.use('/api/posts', postRoutes);
+app.use('/api/posts', postRoutes);
 app.use('/api/chats', chatRoutes);
 
 // Setup static file serving

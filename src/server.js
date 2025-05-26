@@ -28,6 +28,7 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import likeRoutes from './routes/likeRoutes.js';
 
 dotenv.config();
 
@@ -131,6 +132,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/chats', chatRoutes);
+app.use('/api/likes', likeRoutes);
 
 // Setup static file serving
 app.use('/uploads', express.static(uploadsDir));

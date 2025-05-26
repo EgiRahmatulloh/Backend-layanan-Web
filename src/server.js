@@ -135,38 +135,6 @@ app.use('/api/chats', chatRoutes);
 // Setup static file serving
 app.use('/uploads', express.static(uploadsDir));
 
-app.post('/api/upload/chat_media', (req, res) => {
-  upload(req, res, (err) => {
-    if (err instanceof multer.MulterError) {
-      // A Multer error occurred when uploading
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'Ukuran file terlalu besar. Maksimal 10MB' });
-      }
-      return res.status(500).json({ error: 'Terjadi kesalahan saat mengunggah file' });
-    } else if (err) {
-      // An unknown error occurred
-      return res.status(400).json({ error: err.message });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ error: 'Tidak ada file yang diunggah' });
-    }
-
-    try {
-      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/chat_media/${req.file.filename}`;
-      res.status(200).json({ 
-        success: true,
-        filePath: `/uploads/chat_media/${req.file.filename}`,
-        fileUrl: fileUrl,
-        fileName: req.file.filename
-      });
-    } catch (error) {
-      console.error('Error processing upload:', error);
-      res.status(500).json({ error: 'Terjadi kesalahan saat memproses file' });
-    }
-  });
-});
-
 // Error handler
 app.use((err, req, res, next) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;

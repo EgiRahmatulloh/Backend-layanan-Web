@@ -191,6 +191,8 @@ const io = new Server(httpServer, {
   }
 });
 
+app.set('socketio', io);
+
 io.on('connection', (socket) => {
   console.log('Pengguna terhubung:', socket.id);
 

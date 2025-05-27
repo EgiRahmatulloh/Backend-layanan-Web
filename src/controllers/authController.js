@@ -58,11 +58,24 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ where: { email } });
 
     if (user && (await bcrypt.compare(password, user.password))) {
+      user.is_online = true;
+      user.last_seen = new Date();
+      await user.save();
+      const io = req.app.get('socketio');
+      const userStatusData = {
+        user_id: user.user_id,
+        is_online: user.is_online,
+        last_seen: user.last_seen,
+      };
+      io.emit('userStatusChange', userStatusData);
+
       res.json({
         id: user.user_id,
         username: user.username,
         email: user.email,
         token: generateToken(user.user_id),
+        is_online: user.is_online,
+        last_seen: user.last_seen,
       });
     } else {
       res.status(401).json({ message: 'Email atau password salah' });
@@ -79,4 +92,29 @@ const generateToken = (id) => {
   });
 };
 
-export { registerUser, loginUser };
+const logoutUser = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.user_id);
+    if (user) {
+      user.is_online = false;
+      user.last_seen = new Date();
+      await user.save();
+
+      const io = req.app.get('socketio');
+      const userStatusData = {
+        user_id: user.user_id,
+        is_online: user.is_online,
+        last_seen: user.last_seen,
+      };
+      io.emit('userStatusChange', userStatusData);
+
+      res.status(200).json({ message: 'Berhasil logout' });
+    } else {
+      res.status(404).json({ message: 'Pengguna tidak ditemukan' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export { registerUser, loginUser, logoutUser };

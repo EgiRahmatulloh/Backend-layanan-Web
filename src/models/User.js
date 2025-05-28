@@ -32,6 +32,10 @@ const User = sequelize.define('User', {
   foto_profil: {
     type: DataTypes.STRING,
     defaultValue: 'default.jpg'
+  },
+  last_seen: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   }
 }, {
   timestamps: true,

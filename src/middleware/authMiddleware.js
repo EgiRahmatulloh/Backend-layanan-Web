@@ -13,6 +13,14 @@ export const verifyToken = async (req, res, next) => {
 
       req.user = await User.findByPk(decoded.id, { attributes: { exclude: ['password'] } });
       console.log('User from DB:', req.user);
+      
+      // Update last_seen timestamp
+      if (req.user) {
+        await User.update(
+          { last_seen: new Date() },
+          { where: { user_id: req.user.user_id } }
+        );
+      }
 
       next();
     } catch (error) {

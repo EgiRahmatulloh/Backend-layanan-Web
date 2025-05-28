@@ -25,7 +25,7 @@ const getAllUsers = async (req, res) => {
     const loggedInUserId = req.user.user_id;
     const users = await User.findAll({
       where: { user_id: { [Op.ne]: loggedInUserId } },
-      attributes: ['user_id', 'username', 'email', 'name', 'foto_profil']
+      attributes: ['user_id', 'username', 'email', 'name', 'foto_profil', 'last_seen']
     });
     res.status(200).json(users);
   } catch (error) {

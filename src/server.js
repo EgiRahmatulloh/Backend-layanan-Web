@@ -35,7 +35,7 @@ dotenv.config();
 connectDB();
 
 // Sinkronisasi model (gunakan force: true hanya di lingkungan dev)
-sequelize.sync({ force: false }).then(() => {
+sequelize.sync({ force: true }).then(() => {
   console.log('Database & tabel dibuat!');
 });
 

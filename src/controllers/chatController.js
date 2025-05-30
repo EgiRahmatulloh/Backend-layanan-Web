@@ -101,3 +101,45 @@ export const deleteMessage = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const sendFile = async (req, res) => {
+  try {
+    const { id_penerima, pesan } = req.body;
+    const id_pengirim = req.user.user_id;
+    const file = req.file;
+
+    if (!id_penerima || !file) {
+      return res.status(400).json({ message: 'Harap isi semua bidang' });
+    }
+
+    // Simpan file di server
+    const uploadDir = path.join(process.cwd(), 'uploads', 'chat_media');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const fileName = `${Date.now()}-${file.originalname}`;
+    const filePath = path.join(uploadDir, fileName);
+    fs.writeFileSync(filePath, file.buffer);
+
+    // Simpan pesan ke database
+    const chat = await Chat.create({
+      id_pengirim,
+      id_penerima,
+      pesan: pesan || '',
+      media_url: `/uploads/chat_media/${fileName}`
+    });
+
+    res.status(201).json({ message: 'File berhasil dikirim', chat });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Middleware untuk mengunggah file
+import multer from 'multer';
+const storage = multer.memoryStorage();
+export const uploadFile = multer({
+  storage: storage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50 MB
+}).single('file');

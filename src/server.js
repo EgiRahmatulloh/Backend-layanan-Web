@@ -35,7 +35,7 @@ dotenv.config();
 connectDB();
 
 // Sinkronisasi model (gunakan force: true hanya di lingkungan dev)
-sequelize.sync({ force: true }).then(() => {
+sequelize.sync({ force: false }).then(() => {
   console.log('Database & tabel dibuat!');
 });
 
@@ -63,7 +63,10 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false
+}));
 app.use(morgan('dev'));
 
 // Handle preflight requests
@@ -134,8 +137,13 @@ app.use('/api/posts', postRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/likes', likeRoutes);
 
-// Setup static file serving
-app.use('/uploads', express.static(uploadsDir));
+// Setup static file serving dengan CORS yang lebih permisif untuk uploads
+app.use('/uploads', cors({
+  origin: '*',
+  methods: ['GET'],
+  allowedHeaders: ['Content-Type'],
+  credentials: false
+}), express.static(uploadsDir));
 
 app.post('/api/upload/chat_media', (req, res) => {
   upload(req, res, (err) => {

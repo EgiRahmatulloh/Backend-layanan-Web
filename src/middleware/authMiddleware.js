@@ -11,16 +11,21 @@ export const verifyToken = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log('Decoded token:', decoded);
 
-      req.user = await User.findByPk(decoded.id, { attributes: { exclude: ['password'] } });
-      console.log('User from DB:', req.user);
-      
-      // Update last_seen timestamp
-      if (req.user) {
-        await User.update(
-          { last_seen: new Date() },
-          { where: { user_id: req.user.user_id } }
-        );
+      const user = await User.findByPk(decoded.id, { attributes: { exclude: ['password'] } });
+      if (!user) {
+        return res.status(401).json({ message: 'User tidak ditemukan' });
       }
+      console.log('User from DB:', user);
+
+      // Set the user and alias id to user_id
+      req.user = user;
+      req.user.id = user.user_id;
+
+      // Update last_seen timestamp
+      await User.update(
+        { last_seen: new Date() },
+        { where: { user_id: user.user_id } }
+      );
 
       next();
     } catch (error) {

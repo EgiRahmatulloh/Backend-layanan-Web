@@ -1,5 +1,6 @@
 import Post from '../models/Post.js';
 import User from '../models/User.js';
+import Like from '../models/Like.js'; // Tambahkan impor model Like
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -55,6 +56,7 @@ export const getAllPosts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    const id_user = req.user?.user_id; // Di middleware, user id disimpan di req.user.user_id
     
     const { count, rows: posts } = await Post.findAndCountAll({
       include: [
@@ -68,12 +70,34 @@ export const getAllPosts = async (req, res) => {
       offset
     });
     
+    // Tambahkan informasi likeCount dan isLiked untuk setiap post
+    const postsWithLikes = await Promise.all(posts.map(async (post) => {
+      const likeCount = await Like.count({ where: { id_post: post.id_post } });
+      
+      let isLiked = false;
+      if (id_user) {
+        const like = await Like.findOne({
+          where: {
+            id_post: post.id_post,
+            id_user
+          }
+        });
+        isLiked = !!like;
+      }
+      
+      return {
+        ...post.get({ plain: true }),
+        likeCount,
+        isLiked: !!isLiked
+      };
+    }));
+    
     res.status(200).json({
       success: true,
       totalPosts: count,
       totalPages: Math.ceil(count / limit),
       currentPage: page,
-      data: posts
+      data: postsWithLikes
     });
   } catch (error) {
     console.error('Error fetching posts:', error);

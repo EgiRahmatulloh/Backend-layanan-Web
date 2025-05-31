@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 export const createPost = async (req, res) => {
   try {
     const { caption } = req.body;
-    const id_user = req.user.id;
+    const id_user = req.user.user_id;
     
     // Jika ada file yang diupload
     let mediaPath = null;
@@ -29,7 +29,7 @@ export const createPost = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ['user_id', 'username', 'name', 'profile_picture']
+          attributes: ['user_id', 'username', 'name', 'foto_profil']
         }
       ]
     });
@@ -60,7 +60,7 @@ export const getAllPosts = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ['user_id', 'username', 'name', 'profile_picture']
+          attributes: ['user_id', 'username', 'name', 'foto_profil']
         }
       ],
       order: [['createdAt', 'DESC']],

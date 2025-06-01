@@ -73,4 +73,6 @@ router.get('/user/:userId', getPostsByUserId);
 router.put('/:id', verifyToken, handleUpload, updatePost);
 router.delete('/:id', verifyToken, deletePost);
 
+
+
 export default router;

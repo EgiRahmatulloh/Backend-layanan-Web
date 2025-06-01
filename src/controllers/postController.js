@@ -1,6 +1,7 @@
 import Post from '../models/Post.js';
 import User from '../models/User.js';
 import Like from '../models/Like.js'; // Tambahkan impor model Like
+import Komentar from '../models/Komentar.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -63,6 +64,15 @@ export const getAllPosts = async (req, res) => {
         {
           model: User,
           attributes: ['user_id', 'username', 'name', 'foto_profil']
+        },
+        {
+          model: Komentar,
+          include: [{
+            model: User,
+            attributes: ['user_id', 'username', 'name', 'foto_profil']
+          }],
+          limit: 2, // Ambil hanya 2 komentar sebagai preview
+          order: [['waktu', 'DESC']] // Urutkan komentar dari yang terbaru
         }
       ],
       order: [['createdAt', 'DESC']],
@@ -70,9 +80,10 @@ export const getAllPosts = async (req, res) => {
       offset
     });
     
-    // Tambahkan informasi likeCount dan isLiked untuk setiap post
+    // Tambahkan informasi likeCount, isLiked, dan commentCount untuk setiap post
     const postsWithLikes = await Promise.all(posts.map(async (post) => {
       const likeCount = await Like.count({ where: { id_post: post.id_post } });
+      const commentCount = await Komentar.count({ where: { id_post: post.id_post } });
       
       let isLiked = false;
       if (id_user) {
@@ -88,6 +99,7 @@ export const getAllPosts = async (req, res) => {
       return {
         ...post.get({ plain: true }),
         likeCount,
+        commentCount,
         isLiked: !!isLiked
       };
     }));

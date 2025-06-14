@@ -67,10 +67,12 @@ const handleUpload = (req, res, next) => {
 
 // Routes
 router.post('/', verifyToken, handleUpload, createPost);
-router.get('/', getAllPosts);
+router.get('/', verifyToken, getAllPosts);
 router.get('/:id', getPostById);
 router.get('/user/:userId', getPostsByUserId);
 router.put('/:id', verifyToken, handleUpload, updatePost);
 router.delete('/:id', verifyToken, deletePost);
+
+
 
 export default router;

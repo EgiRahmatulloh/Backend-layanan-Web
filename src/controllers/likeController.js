@@ -59,7 +59,7 @@ export const addLike = async (req, res) => {
 export const removeLike = async (req, res) => {
   try {
     const { id_post } = req.params;
-    const id_user = req.user.id;
+    const id_user = req.user.user_id;
     
     // Cek apakah like ada
     const like = await Like.findOne({
@@ -97,7 +97,7 @@ export const removeLike = async (req, res) => {
 export const checkLike = async (req, res) => {
   try {
     const { id_post } = req.params;
-    const id_user = req.user.id;
+    const id_user = req.user.user_id;
     
     const like = await Like.findOne({
       where: {
@@ -208,7 +208,7 @@ export const getLikeUsers = async (req, res) => {
 // Dapatkan semua post yang disukai oleh user
 export const getLikedPosts = async (req, res) => {
   try {
-    const id_user = req.user.id;
+    const id_user = req.user.user_id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;

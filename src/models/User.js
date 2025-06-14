@@ -1,6 +1,7 @@
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../config/db.js';
 import bcrypt from 'bcrypt';
+import Follow from './Follow.js';
 
 const User = sequelize.define('User', {
   user_id: {
@@ -59,5 +60,8 @@ const User = sequelize.define('User', {
 User.prototype.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+User.belongsToMany(User, { as: 'Mengikuti', through: Follow, foreignKey: 'id_pengikut', otherKey: 'id_diikuti' });
+User.belongsToMany(User, { as: 'Pengikut', through: Follow, foreignKey: 'id_diikuti', otherKey: 'id_pengikut' });
 
 export default User;

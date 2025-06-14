@@ -29,7 +29,7 @@ import userRoutes from './routes/userRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import likeRoutes from './routes/likeRoutes.js';
-import komentarRoutes from './routes/komentarRoutes.js';
+import followRoutes from './routes/followRoutes.js';
 
 dotenv.config();
 
@@ -137,7 +137,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/likes', likeRoutes);
-app.use('/api/comments', komentarRoutes);
+app.use('/api/follow', followRoutes);
 
 // Setup static file serving dengan CORS yang lebih permisif untuk uploads
 app.use('/uploads', cors({

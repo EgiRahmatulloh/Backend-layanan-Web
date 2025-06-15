@@ -130,7 +130,7 @@ export const getPostById = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ['user_id', 'username', 'name', 'profile_picture']
+          attributes: ['user_id', 'username', 'name', 'foto_profil']
         }
       ]
     });
@@ -169,7 +169,7 @@ export const getPostsByUserId = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ['user_id', 'username', 'name', 'profile_picture']
+          attributes: ['user_id', 'username', 'name', 'foto_profil']
         }
       ],
       order: [['createdAt', 'DESC']],

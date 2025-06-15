@@ -178,7 +178,7 @@ export const getLikeUsers = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ['user_id', 'username', 'name', 'profile_picture']
+          attributes: ['user_id', 'username', 'name', 'foto_profil']
         }
       ],
       order: [['waktu', 'DESC']],
@@ -223,7 +223,7 @@ export const getLikedPosts = async (req, res) => {
           include: [
             {
               model: User,
-              attributes: ['user_id', 'username', 'name', 'profile_picture']
+              attributes: ['user_id', 'username', 'name', 'foto_profil']
             }
           ]
         }

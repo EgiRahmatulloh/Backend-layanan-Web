@@ -31,7 +31,7 @@ const getUserProfile = async (req, res) => {
       id: user.user_id,
       username: user.username,
       email: user.email,
-      nama: user.name,
+      name: user.name,
       foto_profil: user.foto_profil,
       bio: user.bio,
       createdAt: user.createdAt,
@@ -39,7 +39,10 @@ const getUserProfile = async (req, res) => {
       followingCount
     };
     
-    res.status(200).json(userProfile);
+    res.status(200).json({
+      success: true,
+      data: userProfile
+    });
   } catch (error) {
     console.error('Error getting user profile:', error);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
@@ -47,11 +50,80 @@ const getUserProfile = async (req, res) => {
 };
 
 // @desc    Update user profile
-// @route   PUT /api/users/:id
+// @route   PUT /api/users/profile
 // @access  Private
 const updateUserProfile = async (req, res) => {
-  // Implementasi logika memperbarui profil pengguna
-  res.send('PUT user profile');
+  try {
+    const userId = req.user.user_id;
+    const { name, username, bio } = req.body;
+    
+    // Cek apakah user ada
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User tidak ditemukan'
+      });
+    }
+    
+    // Cek apakah username sudah digunakan user lain
+    if (username && username !== user.username) {
+      const existingUser = await User.findOne({
+        where: { 
+          username,
+          user_id: { [Op.ne]: userId }
+        }
+      });
+      
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username sudah digunakan'
+        });
+      }
+    }
+    
+    // Siapkan data update
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (username) updateData.username = username;
+    if (bio !== undefined) updateData.bio = bio;
+    
+    // Handle upload foto profil jika ada
+    if (req.file) {
+      updateData.foto_profil = `/uploads/profiles/${req.file.filename}`;
+    }
+    
+    // Update user
+    await user.update(updateData);
+    
+    // Ambil data user yang sudah diupdate
+    const updatedUser = await User.findByPk(userId, {
+      attributes: ['user_id', 'username', 'email', 'name', 'foto_profil', 'bio', 'createdAt']
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Profil berhasil diperbarui',
+      data: {
+        id: updatedUser.user_id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        foto_profil: updatedUser.foto_profil,
+        bio: updatedUser.bio,
+        createdAt: updatedUser.createdAt
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan server',
+      error: error.message
+    });
+  }
 };
 
 // @desc    Get all users

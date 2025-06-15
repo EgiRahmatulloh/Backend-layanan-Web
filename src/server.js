@@ -149,6 +149,13 @@ app.use('/uploads', cors({
   credentials: false
 }), express.static(uploadsDir));
 
+// Pastikan direktori profiles ada
+const profilesDir = path.join(process.cwd(), 'uploads', 'profiles');
+if (!fs.existsSync(profilesDir)) {
+  fs.mkdirSync(profilesDir, { recursive: true });
+  console.log(`Direktori ${profilesDir} berhasil dibuat`);
+}
+
 app.post('/api/upload/chat_media', (req, res) => {
   upload(req, res, (err) => {
     if (err instanceof multer.MulterError) {

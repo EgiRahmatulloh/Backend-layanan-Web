@@ -151,10 +151,42 @@ const getFollowStatus = async (req, res) => {
   }
 };
 
+// @desc    Get followers count
+// @route   GET /api/follow/:userId/followers/count
+// @access  Private
+const getFollowersCount = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const count = await Follow.count({
+      where: { id_diikuti: userId }
+    });
+    res.status(200).json({ count });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get following count
+// @route   GET /api/follow/:userId/following/count
+// @access  Private
+const getFollowingCount = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const count = await Follow.count({
+      where: { id_pengikut: userId }
+    });
+    res.status(200).json({ count });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export {
   followUser,
   unfollowUser,
   getFollowers,
   getFollowing,
-  getFollowStatus
+  getFollowStatus,
+  getFollowersCount,
+  getFollowingCount
 };

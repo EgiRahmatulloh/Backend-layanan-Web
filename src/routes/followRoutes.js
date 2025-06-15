@@ -4,7 +4,9 @@ import {
   unfollowUser,
   getFollowers,
   getFollowing,
-  getFollowStatus
+  getFollowStatus,
+  getFollowersCount,
+  getFollowingCount
 } from '../controllers/followController.js';
 import { verifyToken } from '../middleware/authMiddleware.js';
 
@@ -24,5 +26,11 @@ router.get('/:userId/following', verifyToken, getFollowing);
 
 // Check follow status
 router.get('/:userId/status', verifyToken, getFollowStatus);
+
+// Get followers count
+router.get('/:userId/followers/count', verifyToken, getFollowersCount);
+
+// Get following count
+router.get('/:userId/following/count', verifyToken, getFollowingCount);
 
 export default router;

@@ -35,9 +35,15 @@ const registerUser = async (req, res) => {
 
     if (user) {
       res.status(201).json({
-        id: user.user_id,
-        username: user.username,
-        email: user.email,
+        user: {
+          id: user.user_id,
+          user_id: user.user_id,
+          username: user.username,
+          email: user.email,
+          name: user.name,
+          foto_profil: user.foto_profil,
+          bio: user.bio
+        },
         token: generateToken(user.user_id),
       });
     } else {
@@ -59,9 +65,15 @@ const loginUser = async (req, res) => {
 
     if (user && (await bcrypt.compare(password, user.password))) {
       res.json({
-        id: user.user_id,
-        username: user.username,
-        email: user.email,
+        user: {
+          id: user.user_id,
+          user_id: user.user_id,
+          username: user.username,
+          email: user.email,
+          name: user.name,
+          foto_profil: user.foto_profil,
+          bio: user.bio
+        },
         token: generateToken(user.user_id),
       });
     } else {

@@ -34,6 +34,10 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     defaultValue: 'default.jpg'
   },
+  bio: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   last_seen: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

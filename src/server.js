@@ -22,6 +22,7 @@ import Komentar from './models/Komentar.js';
 import Group from './models/Group.js';
 import GroupMember from './models/GroupMember.js';
 import GroupChat from './models/GroupChat.js';
+import Story from './models/Story.js';
 import authRoutes from './routes/authRoutes.js';
 
 // Import routes di sini nanti
@@ -31,13 +32,16 @@ import chatRoutes from './routes/chatRoutes.js';
 import likeRoutes from './routes/likeRoutes.js';
 import followRoutes from './routes/followRoutes.js';
 import komentarRoutes from './routes/komentarRoutes.js';
+import storyRoutes from './routes/storyRoutes.js';
+import { cleanupExpiredStories } from './controllers/storyController.js';
+import cron from 'node-cron';
 
 dotenv.config();
 
 connectDB();
 
 // Sinkronisasi model (gunakan force: true hanya di lingkungan dev)
-sequelize.sync({ force: false }).then(() => {
+sequelize.sync({ force:false }).then(() => {
   console.log('Database & tabel dibuat!');
 });
 
@@ -77,6 +81,7 @@ app.options('*', cors(corsOptions));
 // Definisikan path untuk uploads dan chat_media
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 const chatMediaDir = path.join(uploadsDir, 'chat_media');
+const storiesDir = path.join(uploadsDir, 'stories');
 
 // Buat direktori jika belum ada
 try {
@@ -87,6 +92,10 @@ try {
   if (!fs.existsSync(chatMediaDir)) {
     fs.mkdirSync(chatMediaDir, { recursive: true });
     console.log(`Direktori ${chatMediaDir} berhasil dibuat`);
+  }
+  if (!fs.existsSync(storiesDir)) {
+    fs.mkdirSync(storiesDir, { recursive: true });
+    console.log(`Direktori ${storiesDir} berhasil dibuat`);
   }
   console.log('Sistem siap menerima file di:', uploadsDir);
 } catch (error) {
@@ -140,6 +149,7 @@ app.use('/api/chats', chatRoutes);
 app.use('/api/likes', likeRoutes);
 app.use('/api/follow', followRoutes);
 app.use('/api/comments', komentarRoutes);
+app.use('/api/stories', storyRoutes);
 
 // Setup static file serving dengan CORS yang lebih permisif untuk uploads
 app.use('/uploads', cors({
@@ -220,6 +230,29 @@ io.on('connection', (socket) => {
   });
 });
 
+// Setup cron job untuk membersihkan stories yang expired setiap jam
+cron.schedule('0 * * * *', async () => {
+  console.log('Running scheduled story cleanup...');
+  try {
+    const deletedCount = await cleanupExpiredStories();
+    console.log(`Scheduled cleanup completed: ${deletedCount} stories removed`);
+  } catch (error) {
+    console.error('Error in scheduled cleanup:', error);
+  }
+});
+
+// Jalankan cleanup pertama kali saat server start
+setTimeout(async () => {
+  try {
+    console.log('Running initial story cleanup...');
+    const deletedCount = await cleanupExpiredStories();
+    console.log(`Initial cleanup completed: ${deletedCount} stories removed`);
+  } catch (error) {
+    console.error('Error in initial cleanup:', error);
+  }
+}, 5000); // 5 detik setelah server start
+
 httpServer.listen(PORT, () => {
   console.log(`Server berjalan di port ${PORT}`);
+  console.log('Story cleanup scheduler aktif - akan berjalan setiap jam (0 * * * *)');
 });

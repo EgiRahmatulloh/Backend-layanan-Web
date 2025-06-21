@@ -44,11 +44,20 @@ export const getUserGroups = async (req, res) => {
       where: { id_user: userId },
       include: [{
         model: Group,
-        include: [{
-          model: User,
-          as: 'Admin',
-          attributes: ['user_id', 'username', 'name']
-        }]
+        include: [
+          {
+            model: User,
+            as: 'Admin',
+            attributes: ['user_id', 'username', 'name']
+          },
+          {
+            model: GroupMember,
+            include: [{
+              model: User,
+              attributes: ['user_id', 'username', 'name']
+            }]
+          }
+        ]
       }]
     });
 
@@ -145,18 +154,18 @@ export const addMember = async (req, res) => {
 export const removeMember = async (req, res) => {
   try {
     const { id_group, id_user } = req.params;
-    const adminId = req.user.user_id;
+    const currentUserId = req.user.user_id;
 
-    // Cek apakah user yang menghapus adalah admin
-    const adminMembership = await GroupMember.findOne({
-      where: { id_group, id_user: adminId, role: 'admin' }
+    // Cek apakah user yang menghapus adalah admin atau moderator
+    const currentUserMembership = await GroupMember.findOne({
+      where: { id_group, id_user: currentUserId }
     });
 
-    if (!adminMembership) {
-      return res.status(403).json({ message: 'Hanya admin yang dapat menghapus member' });
+    if (!currentUserMembership || !['admin', 'moderator'].includes(currentUserMembership.role)) {
+      return res.status(403).json({ message: 'Hanya admin atau moderator yang dapat menghapus member' });
     }
 
-    // Tidak bisa menghapus admin
+    // Cek member yang akan dihapus
     const targetMember = await GroupMember.findOne({
       where: { id_group, id_user }
     });
@@ -165,8 +174,19 @@ export const removeMember = async (req, res) => {
       return res.status(404).json({ message: 'Member tidak ditemukan' });
     }
 
+    // Tidak bisa menghapus admin
     if (targetMember.role === 'admin') {
       return res.status(400).json({ message: 'Tidak dapat menghapus admin group' });
+    }
+
+    // Moderator tidak bisa menghapus moderator lain
+    if (currentUserMembership.role === 'moderator' && targetMember.role === 'moderator') {
+      return res.status(403).json({ message: 'Moderator tidak dapat menghapus moderator lain' });
+    }
+
+    // Tidak bisa menghapus diri sendiri (kecuali menggunakan leave group)
+    if (currentUserId === id_user) {
+      return res.status(400).json({ message: 'Gunakan fitur keluar group untuk meninggalkan group' });
     }
 
     await GroupMember.destroy({
@@ -421,6 +441,179 @@ export const transferAdmin = async (req, res) => {
 
     res.status(200).json({ message: 'Admin berhasil ditransfer' });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Mendapatkan semua grup yang tersedia untuk bergabung
+export const getAllAvailableGroups = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const { search } = req.query;
+
+    // Dapatkan ID grup yang sudah diikuti user
+    const userGroups = await GroupMember.findAll({
+      where: { id_user: userId },
+      attributes: ['id_group']
+    });
+
+    const joinedGroupIds = userGroups.map(group => group.id_group);
+
+    // Query untuk mendapatkan grup yang belum diikuti
+    let whereCondition = {
+      id_group: {
+        [Op.notIn]: joinedGroupIds
+      }
+    };
+
+    // Tambahkan filter pencarian jika ada
+    if (search) {
+      whereCondition.nama_group = {
+        [Op.like]: `%${search}%`
+      };
+    }
+
+    const availableGroups = await Group.findAll({
+      where: whereCondition,
+      include: [
+        {
+          model: User,
+          as: 'Admin',
+          attributes: ['user_id', 'username', 'name', 'foto_profil']
+        },
+        {
+          model: GroupMember,
+          attributes: ['id_user'],
+          required: false
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    // Tambahkan jumlah member untuk setiap grup
+    const groupsWithMemberCount = availableGroups.map(group => {
+      const memberCount = group.GroupMembers ? group.GroupMembers.length : 0;
+      const groupData = group.get({ plain: true });
+      delete groupData.GroupMembers;
+      return {
+        ...groupData,
+        memberCount
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Berhasil mengambil daftar grup yang tersedia',
+      data: groupsWithMemberCount
+    });
+  } catch (error) {
+    console.error('Error fetching available groups:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Gagal mengambil daftar grup yang tersedia',
+      error: error.message 
+    });
+  }
+};
+
+// Bergabung dengan grup
+export const joinGroup = async (req, res) => {
+  try {
+    const { id_group } = req.params;
+    const userId = req.user.user_id;
+
+    // Cek apakah grup ada
+    const group = await Group.findByPk(id_group);
+    if (!group) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Grup tidak ditemukan' 
+      });
+    }
+
+    // Cek apakah user sudah menjadi member
+    const existingMember = await GroupMember.findOne({
+      where: { id_group, id_user: userId }
+    });
+
+    if (existingMember) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Anda sudah menjadi member grup ini' 
+      });
+    }
+
+    // Tambahkan user sebagai member
+    const newMember = await GroupMember.create({
+      id_group,
+      id_user: userId,
+      role: 'member'
+    });
+
+    res.status(201).json({ 
+      success: true,
+      message: 'Berhasil bergabung dengan grup',
+      data: newMember
+    });
+  } catch (error) {
+    console.error('Error joining group:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Gagal bergabung dengan grup',
+      error: error.message 
+    });
+  }
+};
+
+// Memperbarui peran anggota grup (moderator/member)
+export const updateMemberRole = async (req, res) => {
+  try {
+    const { id_group, id_user } = req.params;
+    const { role } = req.body;
+    const currentUserId = req.user.user_id;
+
+    // Validasi peran yang diminta
+    if (!['member', 'moderator'].includes(role)) {
+      return res.status(400).json({ message: 'Peran tidak valid. Hanya "member" atau "moderator" yang diizinkan.' });
+    }
+
+    // Cek apakah user yang melakukan aksi adalah admin grup
+    const adminMembership = await GroupMember.findOne({
+      where: { id_group, id_user: currentUserId, role: 'admin' }
+    });
+
+    if (!adminMembership) {
+      return res.status(403).json({ message: 'Hanya admin yang dapat mengubah peran anggota.' });
+    }
+
+    // Cek apakah anggota target ada di grup
+    const targetMember = await GroupMember.findOne({
+      where: { id_group, id_user }
+    });
+
+    if (!targetMember) {
+      return res.status(404).json({ message: 'Anggota tidak ditemukan di grup ini.' });
+    }
+
+    // Admin tidak bisa mengubah peran dirinya sendiri atau admin lain
+    if (targetMember.role === 'admin') {
+      return res.status(400).json({ message: 'Tidak dapat mengubah peran admin grup.' });
+    }
+    
+    // Admin tidak bisa mengubah peran dirinya sendiri
+    if (targetMember.id_user === currentUserId) {
+      return res.status(400).json({ message: 'Anda tidak dapat mengubah peran Anda sendiri.' });
+    }
+
+    // Update peran anggota
+    await targetMember.update({ role });
+
+    res.status(200).json({ 
+      message: `Peran anggota berhasil diperbarui menjadi ${role}`, 
+      member: targetMember 
+    });
+  } catch (error) {
+    console.error('Error updating member role:', error);
     res.status(500).json({ message: error.message });
   }
 };

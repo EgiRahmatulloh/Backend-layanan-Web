@@ -136,6 +136,56 @@ export const sendFile = async (req, res) => {
   }
 };
 
+export const deleteChat = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user.user_id;
+
+    // Hapus semua pesan yang dikirim oleh atau ditujukan ke pengguna yang sedang login
+    const chats = await Chat.findAll({
+      where: {
+        [Op.or]: [
+          { id_pengirim: currentUserId, id_penerima: userId },
+          { id_pengirim: userId, id_penerima: currentUserId }
+        ]
+      }
+    });
+
+    // Hapus file media yang terkait dengan pesan yang akan dihapus
+    for (const chat of chats) {
+      if (chat.media_url) {
+        const filename = path.basename(chat.media_url);
+        const filePath = path.join(process.cwd(), 'uploads', 'chat_media', filename);
+        
+        try {
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log('File media berhasil dihapus:', filePath);
+          }
+        } catch (err) {
+          console.error('Gagal menghapus file media:', err);
+          // Lanjutkan meskipun gagal menghapus file
+        }
+      }
+    }
+
+    // Hapus pesan dari database
+    await Chat.destroy({
+      where: {
+        [Op.or]: [
+          { id_pengirim: currentUserId, id_penerima: userId },
+          { id_pengirim: userId, id_penerima: currentUserId }
+        ]
+      }
+    });
+
+    res.status(200).json({ message: 'Percakapan berhasil dihapus' });
+  } catch (error) {
+    console.error('Error deleting chat:', error);
+    res.status(500).json({ message: 'Gagal menghapus percakapan', error: error.message });
+  }
+};
+
 // Middleware untuk mengunggah file
 import multer from 'multer';
 const storage = multer.memoryStorage();

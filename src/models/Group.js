@@ -23,6 +23,10 @@ const Group = sequelize.define('Group', {
       model: User,
       key: 'user_id'
     }
+  },
+  foto_grup: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   timestamps: true

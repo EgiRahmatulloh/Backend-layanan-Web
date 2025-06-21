@@ -43,6 +43,20 @@ export const uploadGroupMedia = multer({
   fileFilter: fileFilter
 }).single('group_media');
 
+// Middleware khusus untuk upload foto grup
+export const uploadGroupPhoto = multer({ 
+  storage: storage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (req, file, cb) => {
+    // Hanya izinkan file gambar untuk foto grup
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Hanya file gambar yang diizinkan untuk foto grup'), false);
+    }
+  }
+}).single('file');
+
 // Controller untuk upload file group
 export const uploadGroupFile = async (req, res) => {
   try {

@@ -44,6 +44,7 @@ export const getUserGroups = async (req, res) => {
       where: { id_user: userId },
       include: [{
         model: Group,
+        attributes: ['id_group', 'nama_group', 'deskripsi', 'foto_grup', 'id_admin'],
         include: [
           {
             model: User,
@@ -614,6 +615,49 @@ export const updateMemberRole = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating member role:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Update foto grup
+export const updateGroupPhoto = async (req, res) => {
+  try {
+    const { id_group } = req.params;
+    const userId = req.user.user_id;
+
+    // Cek apakah user adalah admin
+    const adminMembership = await GroupMember.findOne({
+      where: { id_group, id_user: userId, role: 'admin' }
+    });
+
+    if (!adminMembership) {
+      return res.status(403).json({ message: 'Hanya admin yang dapat mengubah foto grup' });
+    }
+
+    const group = await Group.findByPk(id_group);
+    if (!group) {
+      return res.status(404).json({ message: 'Group tidak ditemukan' });
+    }
+
+    // Hapus foto lama jika ada
+    if (group.foto_grup) {
+      const oldPhotoPath = path.join(process.cwd(), group.foto_grup.replace(/^\//, ''));
+      if (fs.existsSync(oldPhotoPath)) {
+        fs.unlinkSync(oldPhotoPath);
+      }
+    }
+
+    // Update dengan foto baru
+    const fotoGrupPath = req.file ? `/uploads/group_media/${req.file.filename}` : null;
+    await group.update({ foto_grup: fotoGrupPath });
+
+    res.status(200).json({ 
+      message: 'Foto grup berhasil diubah', 
+      group,
+      foto_grup: fotoGrupPath
+    });
+  } catch (error) {
+    console.error('Error updating group photo:', error);
     res.status(500).json({ message: error.message });
   }
 };

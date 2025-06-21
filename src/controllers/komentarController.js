@@ -1,6 +1,7 @@
 import Komentar from '../models/Komentar.js';
 import User from '../models/User.js';
 import Post from '../models/Post.js';
+import { createCommentNotification } from './notificationController.js';
 
 // Buat komentar baru
 export const createComment = async (req, res) => {
@@ -31,6 +32,17 @@ export const createComment = async (req, res) => {
         attributes: ['user_id', 'username', 'name', 'foto_profil']
       }]
     });
+
+    // Buat notifikasi untuk pemilik post (jika bukan diri sendiri)
+    if (post.user_id !== id_user) {
+      try {
+        const commenter = await User.findByPk(id_user);
+        await createCommentNotification(post, commenter, isi_komentar);
+      } catch (notifError) {
+        console.error('Error creating comment notification:', notifError);
+        // Jangan gagalkan request utama jika notifikasi gagal
+      }
+    }
 
     res.status(201).json({
       success: true,

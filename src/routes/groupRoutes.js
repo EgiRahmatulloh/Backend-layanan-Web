@@ -14,9 +14,10 @@ import {
   transferAdmin,
   getAllAvailableGroups,
   joinGroup,
-  updateMemberRole // Import the new function
+  updateMemberRole, // Import the new function
+  updateGroupPhoto // Import untuk update foto grup
 } from '../controllers/groupController.js';
-import { uploadGroupFile, deleteGroupFile } from '../controllers/groupMediaController.js';
+import { uploadGroupFile, deleteGroupFile, uploadGroupPhoto } from '../controllers/groupMediaController.js';
 import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -45,5 +46,6 @@ router.delete('/messages/:id_group_chat', verifyToken, deleteGroupMessage);
 // Group media routes
 router.post('/:id_group/upload', verifyToken, uploadGroupFile);
 router.delete('/media/:filename', verifyToken, deleteGroupFile);
+router.put('/:id_group/photo', verifyToken, uploadGroupPhoto, updateGroupPhoto);
 
 export default router;

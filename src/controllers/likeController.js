@@ -2,6 +2,7 @@ import Like from '../models/Like.js';
 import Post from '../models/Post.js';
 import User from '../models/User.js';
 import { sequelize } from '../config/db.js';
+import { createLikeNotification } from './notificationController.js';
 
 // Tambah like pada post
 export const addLike = async (req, res) => {
@@ -39,6 +40,17 @@ export const addLike = async (req, res) => {
       id_post,
       waktu: new Date()
     });
+    
+    // Buat notifikasi untuk pemilik post (jika bukan diri sendiri)
+    if (post.user_id !== id_user) {
+      try {
+        const liker = await User.findByPk(id_user);
+        await createLikeNotification(post, liker);
+      } catch (notifError) {
+        console.error('Error creating like notification:', notifError);
+        // Jangan gagalkan request utama jika notifikasi gagal
+      }
+    }
     
     res.status(201).json({
       success: true,

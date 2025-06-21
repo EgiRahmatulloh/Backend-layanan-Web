@@ -23,7 +23,13 @@ import Group from './models/Group.js';
 import GroupMember from './models/GroupMember.js';
 import GroupChat from './models/GroupChat.js';
 import Story from './models/Story.js';
+import Notification from './models/Notification.js';
 import authRoutes from './routes/authRoutes.js';
+import jwt from 'jsonwebtoken'; // Import jwt
+
+// Define associations
+Notification.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+Notification.belongsTo(User, { foreignKey: 'sender_id', as: 'sender' });
 
 // Import routes di sini nanti
 import userRoutes from './routes/userRoutes.js';
@@ -34,6 +40,7 @@ import followRoutes from './routes/followRoutes.js';
 import komentarRoutes from './routes/komentarRoutes.js';
 import storyRoutes from './routes/storyRoutes.js';
 import groupRoutes from './routes/groupRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import { cleanupExpiredStories } from './controllers/storyController.js';
 import cron from 'node-cron';
 
@@ -157,6 +164,7 @@ app.use('/api/follow', followRoutes);
 app.use('/api/comments', komentarRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Setup static file serving dengan CORS yang lebih permisif untuk uploads
 app.use('/uploads', cors({
@@ -218,15 +226,35 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 const httpServer = http.createServer(app);
-const io = new Server(httpServer, {
+export const io = new Server(httpServer, {
   cors: {
     origin: "*", // Sesuaikan dengan origin frontend Anda
     methods: ["GET", "POST"]
   }
 });
 
+// Middleware otentikasi untuk Socket.IO
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    return next(new Error('Authentication error: No token provided'));
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = decoded; // Attach decoded user info to socket
+    next();
+  } catch (error) {
+    next(new Error('Authentication error: Invalid token'));
+  }
+});
+
 io.on('connection', (socket) => {
   console.log('Pengguna terhubung:', socket.id);
+  console.log('Authenticated user ID:', socket.user.id); // Log authenticated user ID
+
+  // Join user-specific room based on authenticated user ID
+  socket.join(`user_${socket.user.id}`);
+  console.log(`User ${socket.user.id} joined room user_${socket.user.id}`);
 
   socket.on('sendMessage', (message) => {
     io.emit('receiveMessage', message); // Kirim pesan ke semua klien yang terhubung

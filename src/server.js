@@ -41,9 +41,9 @@ dotenv.config();
 
 connectDB();
 
-// Sinkronisasi model (gunakan force: true hanya di lingkungan dev)
-sequelize.sync({ force:false }).then(() => {
-  console.log('Database & tabel dibuat!');
+// Sinkronisasi model dengan alter: true untuk mempertahankan data yang sudah ada
+sequelize.sync({ alter: true }).then(() => {
+  console.log('Database & tabel disinkronisasi!');
 });
 
 
@@ -55,7 +55,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Konfigurasi CORS
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:5173','http://127.0.0.1:52005'];
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:5173','http://127.0.0.1:52005','http://localhost:5174'];
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {

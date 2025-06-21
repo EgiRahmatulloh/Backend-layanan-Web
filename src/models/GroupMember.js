@@ -5,7 +5,7 @@ import User from './User.js';
 
 const GroupMember = sequelize.define('GroupMember', {
   role: {
-    type: DataTypes.ENUM('admin', 'member'),
+    type: DataTypes.ENUM('admin', 'member', 'moderator'), // Add 'moderator' to allowed roles
     allowNull: false,
     defaultValue: 'member'
   }

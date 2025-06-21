@@ -33,6 +33,7 @@ import likeRoutes from './routes/likeRoutes.js';
 import followRoutes from './routes/followRoutes.js';
 import komentarRoutes from './routes/komentarRoutes.js';
 import storyRoutes from './routes/storyRoutes.js';
+import groupRoutes from './routes/groupRoutes.js';
 import { cleanupExpiredStories } from './controllers/storyController.js';
 import cron from 'node-cron';
 
@@ -81,6 +82,7 @@ app.options('*', cors(corsOptions));
 // Definisikan path untuk uploads dan chat_media
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 const chatMediaDir = path.join(uploadsDir, 'chat_media');
+const groupMediaDir = path.join(uploadsDir, 'group_media');
 const storiesDir = path.join(uploadsDir, 'stories');
 
 // Buat direktori jika belum ada
@@ -92,6 +94,10 @@ try {
   if (!fs.existsSync(chatMediaDir)) {
     fs.mkdirSync(chatMediaDir, { recursive: true });
     console.log(`Direktori ${chatMediaDir} berhasil dibuat`);
+  }
+  if (!fs.existsSync(groupMediaDir)) {
+    fs.mkdirSync(groupMediaDir, { recursive: true });
+    console.log(`Direktori ${groupMediaDir} berhasil dibuat`);
   }
   if (!fs.existsSync(storiesDir)) {
     fs.mkdirSync(storiesDir, { recursive: true });
@@ -150,6 +156,7 @@ app.use('/api/likes', likeRoutes);
 app.use('/api/follow', followRoutes);
 app.use('/api/comments', komentarRoutes);
 app.use('/api/stories', storyRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Setup static file serving dengan CORS yang lebih permisif untuk uploads
 app.use('/uploads', cors({

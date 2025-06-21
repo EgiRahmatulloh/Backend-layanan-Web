@@ -2,6 +2,7 @@ import { DataTypes } from 'sequelize';
 import { sequelize } from '../config/db.js';
 import bcrypt from 'bcrypt';
 import Follow from './Follow.js';
+import Notification from './Notification.js';
 
 const User = sequelize.define('User', {
   user_id: {
@@ -67,5 +68,9 @@ User.prototype.matchPassword = async function(enteredPassword) {
 
 User.belongsToMany(User, { as: 'Mengikuti', through: Follow, foreignKey: 'id_pengikut', otherKey: 'id_diikuti' });
 User.belongsToMany(User, { as: 'Pengikut', through: Follow, foreignKey: 'id_diikuti', otherKey: 'id_pengikut' });
+
+// Relasi dengan Notification
+User.hasMany(Notification, { foreignKey: 'user_id', as: 'notifications' });
+User.hasMany(Notification, { foreignKey: 'sender_id', as: 'sentNotifications' });
 
 export default User;

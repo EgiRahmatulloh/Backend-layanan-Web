@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import { Op } from 'sequelize';
 import fs from 'fs';
 import path from 'path';
+import { createPrivateMessageNotification } from './notificationController.js';
 
 export const sendMessage = async (req, res) => {
   try {
@@ -15,6 +16,25 @@ export const sendMessage = async (req, res) => {
       pesan,
       media_url
     });
+
+    // Buat notifikasi untuk penerima pesan
+    try {
+      const sender = await User.findByPk(id_pengirim);
+      const receiver = await User.findByPk(id_penerima);
+      
+      if (sender && receiver) {
+        // Tentukan preview pesan
+        let messagePreview = pesan || 'Mengirim media';
+        if (media_url && !pesan) {
+          messagePreview = 'Mengirim file media';
+        }
+        
+        await createPrivateMessageNotification(receiver, sender, messagePreview);
+      }
+    } catch (notifError) {
+      console.error('Error creating private message notification:', notifError);
+      // Jangan gagalkan request utama jika notifikasi gagal
+    }
 
     res.status(201).json({ message: 'Pesan berhasil dikirim', chat });
   } catch (error) {

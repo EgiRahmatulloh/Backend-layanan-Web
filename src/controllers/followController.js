@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Follow from '../models/Follow.js';
 import { Op } from 'sequelize';
+import { createFollowNotification } from './notificationController.js';
 
 // @desc    Follow user
 // @route   POST /api/follow/:userId
@@ -38,6 +39,15 @@ const followUser = async (req, res) => {
       id_pengikut: followerId,
       id_diikuti: followingId
     });
+
+    // Buat notifikasi untuk user yang difollow
+    try {
+      const follower = await User.findByPk(followerId);
+      await createFollowNotification(userToFollow, follower);
+    } catch (notifError) {
+      console.error('Error creating follow notification:', notifError);
+      // Jangan gagalkan request utama jika notifikasi gagal
+    }
 
     res.status(201).json({ message: 'Berhasil mengikuti user' });
   } catch (error) {

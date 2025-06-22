@@ -316,9 +316,24 @@ export const sendGroupMessage = async (req, res) => {
       media
     });
 
+    // Ambil data pengirim untuk socket
+    const chatWithSender = await GroupChat.findByPk(groupChat.id_group_chat, {
+      include: [{
+        model: User,
+        as: 'Pengirim',
+        attributes: ['user_id', 'username', 'name', 'foto_profil']
+      }]
+    });
+
+    // Tambahkan id_grup ke response untuk socket
+    const chatWithGroupId = {
+      ...chatWithSender.toJSON(),
+      id_grup: id_group
+    };
+
     res.status(201).json({ 
       message: 'Pesan berhasil dikirim', 
-      chat: groupChat 
+      chat: chatWithGroupId 
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

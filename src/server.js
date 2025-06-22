@@ -272,7 +272,12 @@ cron.schedule('0 * * * *', async () => {
     const deletedCount = await cleanupExpiredStories();
     console.log(`Scheduled cleanup completed: ${deletedCount} stories removed`);
   } catch (error) {
-    console.error('Error in scheduled cleanup:', error);
+    // Jika tabel belum ada, skip error logging
+    if (error.name === 'SequelizeDatabaseError' && error.original?.code === 'ER_NO_SUCH_TABLE') {
+      console.log('Stories table not yet ready for scheduled cleanup');
+    } else {
+      console.error('Error in scheduled cleanup:', error);
+    }
   }
 });
 
@@ -283,7 +288,12 @@ setTimeout(async () => {
     const deletedCount = await cleanupExpiredStories();
     console.log(`Initial cleanup completed: ${deletedCount} stories removed`);
   } catch (error) {
-    console.error('Error in initial cleanup:', error);
+    // Jika tabel belum ada, skip error logging
+    if (error.name === 'SequelizeDatabaseError' && error.original?.code === 'ER_NO_SUCH_TABLE') {
+      console.log('Stories table not yet ready for cleanup');
+    } else {
+      console.error('Error in initial cleanup:', error);
+    }
   }
 }, 5000); // 5 detik setelah server start
 

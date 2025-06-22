@@ -207,6 +207,11 @@ export const cleanupExpiredStories = async () => {
     console.log(`Cleaned up ${deletedCount} expired stories`);
     return deletedCount;
   } catch (error) {
+    // Jika tabel belum ada (saat pertama kali server start), return 0
+    if (error.name === 'SequelizeDatabaseError' && error.original?.code === 'ER_NO_SUCH_TABLE') {
+      console.log('Stories table not yet created, skipping cleanup');
+      return 0;
+    }
     console.error('Error cleaning up expired stories:', error);
     throw error;
   }

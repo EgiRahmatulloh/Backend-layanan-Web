@@ -269,8 +269,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('sendMessage', (message) => {
-    // Kirim pesan ke pengirim dan penerima
-    io.to(`user_${message.id_pengirim}`).emit('receiveMessage', message);
+    // Kirim pesan hanya ke penerima untuk menghindari duplikasi
+    // Pengirim sudah mendapat konfirmasi melalui response HTTP
     io.to(`user_${message.id_penerima}`).emit('receiveMessage', message);
   });
 

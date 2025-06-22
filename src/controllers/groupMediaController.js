@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import GroupMember from '../models/GroupMember.js';
 import GroupChat from '../models/GroupChat.js';
+import User from '../models/User.js';
 
 // Konfigurasi multer untuk group media
 const storage = multer.diskStorage({
@@ -117,6 +118,21 @@ export const uploadGroupFile = async (req, res) => {
         });
         console.log('GroupChat entry created successfully:', groupChat);
         
+        // Ambil data pengirim untuk socket
+        const chatWithSender = await GroupChat.findByPk(groupChat.id_group_chat, {
+          include: [{
+            model: User,
+            as: 'Pengirim',
+            attributes: ['user_id', 'username', 'name', 'foto_profil']
+          }]
+        });
+        
+        // Tambahkan id_grup ke response untuk socket
+        const chatWithGroupId = {
+          ...chatWithSender.toJSON(),
+          id_grup: id_group
+        };
+        
         res.status(200).json({ 
           success: true,
           filePath: `/uploads/group_media/${req.file.filename}`,
@@ -125,7 +141,7 @@ export const uploadGroupFile = async (req, res) => {
           originalName: req.file.originalname,
           fileSize: req.file.size,
           mimeType: req.file.mimetype,
-          chat: groupChat
+          chat: chatWithGroupId
         });
       } catch (error) {
         console.error('Error processing upload and saving to DB:', error);

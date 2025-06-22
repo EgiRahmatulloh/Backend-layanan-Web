@@ -256,8 +256,27 @@ io.on('connection', (socket) => {
   socket.join(`user_${socket.user.id}`);
   console.log(`User ${socket.user.id} joined room user_${socket.user.id}`);
 
+  // Handle joinRoom event from frontend
+  socket.on('joinRoom', (roomName) => {
+    socket.join(roomName);
+    console.log(`User ${socket.user.id} joined room: ${roomName}`);
+  });
+
+  // Handle leaveRoom event from frontend
+  socket.on('leaveRoom', (roomName) => {
+    socket.leave(roomName);
+    console.log(`User ${socket.user.id} left room: ${roomName}`);
+  });
+
   socket.on('sendMessage', (message) => {
-    io.emit('receiveMessage', message); // Kirim pesan ke semua klien yang terhubung
+    // Kirim pesan ke pengirim dan penerima
+    io.to(`user_${message.id_pengirim}`).emit('receiveMessage', message);
+    io.to(`user_${message.id_penerima}`).emit('receiveMessage', message);
+  });
+
+  socket.on('sendGroupMessage', (message) => {
+    // Kirim pesan ke semua anggota grup
+    io.to(`group_${message.id_grup}`).emit('receiveGroupMessage', message);
   });
 
   socket.on('disconnect', () => {

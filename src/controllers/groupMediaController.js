@@ -2,6 +2,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import GroupMember from '../models/GroupMember.js';
+import GroupChat from '../models/GroupChat.js';
 
 // Konfigurasi multer untuk group media
 const storage = multer.diskStorage({
@@ -41,7 +42,7 @@ export const uploadGroupMedia = multer({
   storage: storage,
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: fileFilter
-}).single('group_media');
+}).single('file'); // Mengubah 'group_media' menjadi 'file'
 
 // Middleware khusus untuk upload foto grup
 export const uploadGroupPhoto = multer({ 
@@ -59,9 +60,12 @@ export const uploadGroupPhoto = multer({
 
 // Controller untuk upload file group
 export const uploadGroupFile = async (req, res) => {
+  console.log('Entering uploadGroupFile controller...'); // Log awal
   try {
     const { id_group } = req.params;
-    const userId = req.user.user_id;
+    console.log('id_group:', id_group); // Log id_group
+    const userId = req.user ? req.user.user_id : 'undefined'; // Periksa req.user sebelum mengakses user_id
+    console.log('userId:', userId); // Log userId
 
     // Cek apakah user adalah member dari group
     const membership = await GroupMember.findOne({
@@ -69,10 +73,16 @@ export const uploadGroupFile = async (req, res) => {
     });
 
     if (!membership) {
+      console.log('User is not a member of this group.'); // Log jika bukan member
       return res.status(403).json({ message: 'Anda bukan member dari group ini' });
     }
+    console.log('User is a member of the group.'); // Log jika member
 
-    uploadGroupMedia(req, res, (err) => {
+    uploadGroupMedia(req, res, async (err) => {
+      console.log('Inside uploadGroupMedia callback...');
+      console.log('req.file:', req.file); // Log req.file
+      console.log('Multer error (if any):', err); // Log Multer error
+
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(400).json({ error: 'Ukuran file terlalu besar. Maksimal 10MB' });
@@ -83,11 +93,24 @@ export const uploadGroupFile = async (req, res) => {
       }
 
       if (!req.file) {
+        console.log('No file uploaded.'); // Log jika tidak ada file
         return res.status(400).json({ error: 'Tidak ada file yang diunggah' });
       }
 
       try {
         const fileUrl = `${req.protocol}://${req.get('host')}/uploads/group_media/${req.file.filename}`;
+        
+        // Simpan pesan file ke database
+        const { pesan } = req.body;
+        console.log('Attempting to create GroupChat entry...');
+        const groupChat = await GroupChat.create({
+          id_group,
+          id_pengirim: userId,
+          pesan: pesan || `File: ${req.file.originalname}`,
+          media: `/uploads/group_media/${req.file.filename}`
+        });
+        console.log('GroupChat entry created successfully:', groupChat);
+        
         res.status(200).json({ 
           success: true,
           filePath: `/uploads/group_media/${req.file.filename}`,
@@ -95,14 +118,16 @@ export const uploadGroupFile = async (req, res) => {
           fileName: req.file.filename,
           originalName: req.file.originalname,
           fileSize: req.file.size,
-          mimeType: req.file.mimetype
+          mimeType: req.file.mimetype,
+          chat: groupChat
         });
       } catch (error) {
-        console.error('Error processing upload:', error);
-        res.status(500).json({ error: 'Terjadi kesalahan saat memproses file' });
+        console.error('Error processing upload and saving to DB:', error);
+        res.status(500).json({ error: 'Terjadi kesalahan saat memproses file atau menyimpan ke database' });
       }
     });
   } catch (error) {
+    console.error('Error in uploadGroupFile main try-catch:', error); // Log tambahan di catch utama
     res.status(500).json({ message: error.message });
   }
 };

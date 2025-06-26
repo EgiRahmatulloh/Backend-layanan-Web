@@ -2,6 +2,7 @@ import Post from '../models/Post.js';
 import User from '../models/User.js';
 import Like from '../models/Like.js'; // Tambahkan impor model Like
 import Komentar from '../models/Komentar.js';
+import Follow from '../models/Follow.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -59,7 +60,20 @@ export const getAllPosts = async (req, res) => {
     const offset = (page - 1) * limit;
     const id_user = req.user?.user_id; // Di middleware, user id disimpan di req.user.user_id
     
+    // Dapatkan daftar user yang difollow oleh user saat ini
+    const followedUsers = await Follow.findAll({
+      where: { id_pengikut: id_user },
+      attributes: ['id_diikuti']
+    });
+    
+    // Buat array ID user yang difollow + user sendiri
+    const followedUserIds = followedUsers.map(follow => follow.id_diikuti);
+    followedUserIds.push(id_user); // Tambahkan user sendiri
+    
     const { count, rows: posts } = await Post.findAndCountAll({
+      where: {
+        id_user: followedUserIds // Filter hanya postingan dari user yang difollow + user sendiri
+      },
       include: [
         {
           model: User,

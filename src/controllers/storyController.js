@@ -1,5 +1,6 @@
 import Story from '../models/Story.js';
 import User from '../models/User.js';
+import Follow from '../models/Follow.js';
 import { Op } from 'sequelize';
 import path from 'path';
 import fs from 'fs';
@@ -49,13 +50,25 @@ export const createStory = async (req, res) => {
 export const getActiveStories = async (req, res) => {
   try {
     const now = new Date();
+    const id_user = req.user?.user_id; // ID user yang sedang login
+    
+    // Dapatkan daftar user yang difollow oleh user saat ini
+    const followedUsers = await Follow.findAll({
+      where: { id_pengikut: id_user },
+      attributes: ['id_diikuti']
+    });
+    
+    // Buat array ID user yang difollow + user sendiri
+    const followedUserIds = followedUsers.map(follow => follow.id_diikuti);
+    followedUserIds.push(id_user); // Tambahkan user sendiri
     
     const stories = await Story.findAll({
       where: {
         expired_at: {
           [Op.gt]: now
         },
-        is_active: true
+        is_active: true,
+        id_user: followedUserIds // Filter hanya story dari user yang difollow + user sendiri
       },
       include: [{
         model: User,
